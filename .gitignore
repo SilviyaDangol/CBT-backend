@@ -7,3 +7,5 @@ src/static/uploads/*.[sS][vV][gG]
 node_modules/
 venv/
 .env
+src/models/best.pt
+src/models/best.pt
