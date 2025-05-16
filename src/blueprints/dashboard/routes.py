@@ -12,12 +12,15 @@ bp = Blueprint('dashboard', __name__, url_prefix='/dashboard')
 @bp.route('/pages/stats', methods=['GET'])
 @auth_required()
 def teacher_stats_by_admin():
+    if g.current_user.role != "admin":
+        return jsonify (
+            {
+                'message' : 'user unauthorized'
+            }
+        ), 403
     BEHAVIOR_TYPES = ['hand-raising', 'reading', 'writing']
-    # --- 1. Core Metrics ---
     total_classes = Classroom.query.count()
     total_sessions = Session.query.count()
-
-    # --- 2. Behavior Distribution (All Time) ---
     behavior_counts = []
     for behavior in BEHAVIOR_TYPES:
         count = Behaviour.query.filter(Behaviour.behaviour == behavior).count()
