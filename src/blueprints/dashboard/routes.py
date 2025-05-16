@@ -9,39 +9,54 @@ from src.db.models import Classroom, Student, Session, Behaviour
 
 bp = Blueprint('dashboard', __name__, url_prefix='/dashboard')
 
+from flask import jsonify, g
+from datetime import datetime, timedelta
+from app.models import Classroom, Session, Behaviour  # Adjust import paths as needed
+
 @bp.route('/pages/stats', methods=['GET'])
 @auth_required()
 def teacher_stats_by_admin():
-    if g.current_user.role != "admin":
-        return jsonify (
-            {
-                'message' : 'user unauthorized'
-            }
-        ), 403
     BEHAVIOR_TYPES = ['hand-raising', 'reading', 'writing']
-    total_classes = Classroom.query.count()
-    total_sessions = Session.query.count()
+    
+    # Determine if current user is admin
+    is_admin = g.current_user.role == 'admin'
+    user_id = g.current_user.id
+
+    # --- 1. Core Metrics ---
+    if is_admin:
+        total_classes = Classroom.query.count()
+        total_sessions = Session.query.count()
+    else:
+        total_classes = Classroom.query.filter_by(user_id=user_id).count()
+        total_sessions = Session.query.join(Classroom).filter(Classroom.user_id == user_id).count()
+
+    # --- 2. Behavior Distribution (All Time) ---
     behavior_counts = []
     for behavior in BEHAVIOR_TYPES:
-        count = Behaviour.query.filter(Behaviour.behaviour == behavior).count()
+        if is_admin:
+            count = Behaviour.query.filter_by(behaviour=behavior).count()
+        else:
+            count = Behaviour.query.join(Session).join(Classroom) \
+                .filter(Behaviour.behaviour == behavior, Classroom.user_id == user_id).count()
         behavior_counts.append({"behavior": behavior, "count": count})
 
     # --- 3. Class-Wise Behavior Breakdown ---
     class_stats = []
-    classes = Classroom.query.all()
+    if is_admin:
+        classes = Classroom.query.all()
+    else:
+        classes = Classroom.query.filter_by(user_id=user_id).all()
+
     for class_obj in classes:
-        # Get total sessions for this class
         session_count = Session.query.filter_by(class_id=class_obj.id).count()
 
-        # Get behavior counts for this class
         behaviors = []
         for behavior in BEHAVIOR_TYPES:
             count = Behaviour.query.join(Session) \
                 .filter(
                     Session.class_id == class_obj.id,
                     Behaviour.behaviour == behavior
-                ) \
-                .count()
+                ).count()
             behaviors.append({"behavior": behavior, "count": count})
 
         class_stats.append({
@@ -51,19 +66,22 @@ def teacher_stats_by_admin():
             "behaviors": behaviors
         })
 
-    # --- 4. Weekly Trends (Last 4 Weeks) ---
+    # --- 4. Weekly Trends (Last 5 Weeks) ---
     weekly_trends = []
-    for i in range(4, -1, -1):  # Last 5 weeks
+    for i in range(4, -1, -1):
         week_start = datetime.utcnow() - timedelta(weeks=i + 1)
         week_end = datetime.utcnow() - timedelta(weeks=i)
 
         weekly_data = {"week": week_start.strftime("%Y-%m-%d"), "behaviors": []}
         for behavior in BEHAVIOR_TYPES:
-            count = Behaviour.query.filter(
+            query = Behaviour.query.filter(
                 Behaviour.behaviour == behavior,
                 Behaviour.created_at >= week_start,
                 Behaviour.created_at < week_end
-            ).count()
+            )
+            if not is_admin:
+                query = query.join(Session).join(Classroom).filter(Classroom.user_id == user_id)
+            count = query.count()
             weekly_data["behaviors"].append({"behavior": behavior, "count": count})
         weekly_trends.append(weekly_data)
 
@@ -76,7 +94,6 @@ def teacher_stats_by_admin():
         "class_performance": class_stats,
         "weekly_trends": weekly_trends
     })
-
 @bp.route('/stats', methods=['GET'])
 @auth_required()
 def dashboard_stats():
