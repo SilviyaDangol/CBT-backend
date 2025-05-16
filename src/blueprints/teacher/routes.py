@@ -81,6 +81,31 @@ def create_teacher():
     }), 201
 
 
+@bp.route('/seed-admin', methods=['GET'])
+def seed_admin():
+    if Teacher.query.filter_by(email='admin@example.com').first():
+        return jsonify({'message': 'Admin already exists'}), 400
+
+    password = 'admin123'
+    password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
+    admin = Teacher(
+        id=uuid.uuid4(),
+        first_name='Admin',
+        last_name='User',
+        email='admin@example.com',
+        password_hash=password_hash.decode('utf-8'),
+        role='admin'  # assumes your Teacher model has a 'role' field
+    )
+
+    db.session.add(admin)
+    db.session.commit()
+
+    return jsonify({
+        'message': 'Admin user seeded successfully',
+        'admin_id': str(admin.id)
+    }), 201
+
 @bp.route('/login-teacher', methods=['POST'])
 def login_teacher():
     data = request.get_json()

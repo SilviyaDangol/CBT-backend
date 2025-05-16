@@ -12,8 +12,7 @@ bp = Blueprint('dashboard', __name__, url_prefix='/dashboard')
 @bp.route('/pages/stats', methods=['GET'])
 @auth_required()
 def teacher_stats_by_admin():
-    BEHAVIOR_TYPES = ['hand-raising', 'reading', 'writing']  # Only these 3 behaviors
-
+    BEHAVIOR_TYPES = ['hand-raising', 'reading', 'writing']
     # --- 1. Core Metrics ---
     total_classes = Classroom.query.count()
     total_sessions = Session.query.count()
