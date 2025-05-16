@@ -223,7 +223,7 @@ def list_all_teachers():
     return jsonify(result)
 
 @bp.route('/list-all/<teacher_id>', methods=["GET"])
-@auth_required()
+@auth_required
 def get_classes_by_teacher(teacher_id):
     if g.current_user.role != "admin":
         return jsonify({"error": "Unauthorized access"}), 403
@@ -231,7 +231,7 @@ def get_classes_by_teacher(teacher_id):
     classes_list = [{
         'id': str(cls.id),
         'name': cls.name,
-        'image': url_for('static', filename=f'uploads/{cls.image}', _external=True),
+        'image':  url_for('static', filename=f'uploads/{cls.image}'),
         'description': cls.description,
         'teacher_id': str(cls.teacher_id)
     } for cls in classes]
