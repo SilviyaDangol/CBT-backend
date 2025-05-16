@@ -76,7 +76,7 @@ def teacher_stats_by_admin():
     })
 
 @bp.route('/stats', methods=['GET'])
-@auth_required
+@auth_required()
 def dashboard_stats():
     role = g.current_user.role
     if role == "admin":
