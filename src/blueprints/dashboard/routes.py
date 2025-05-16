@@ -161,7 +161,7 @@ def top_classes():
 
 
 @bp.route('/page/stats', methods=['GET'])
-@teacher_required
+@teacher_required()
 def teacher_stats():
     teacher_id = g.current_user.id
     BEHAVIOR_TYPES = ['hand-raising', 'reading', 'writing']  # Only these 3 behaviors
