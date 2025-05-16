@@ -223,7 +223,7 @@ def list_all_teachers():
     return jsonify(result)
 
 @bp.route('/list-all/<teacher_id>', methods=["GET"])
-@auth_required
+@auth_required()
 def get_classes_by_teacher(teacher_id):
     if g.current_user.role != "admin":
         return jsonify({"error": "Unauthorized access"}), 403
