@@ -5,7 +5,7 @@ from flask import Blueprint, request, jsonify, g, url_for
 from pymsgbox import password
 from werkzeug.security import gen_salt
 
-from ...auth import teacher_required
+from ...auth import teacher_required , auth_required
 from ...db.models import Teacher, Classroom
 import bcrypt
 from ...db import db
@@ -13,6 +13,9 @@ from jwt import JWT
 from jwt.jwk import OctetJWK
 from ...config import Config
 from ...utils.uploads import upload_images
+from sqlalchemy import select, func
+from ...auth import teacher_required, auth_required
+from ...db.models import Teacher, Classroom, student_class_association
 
 bp = Blueprint('teacher', __name__, url_prefix='/teacher')
 
@@ -162,4 +165,50 @@ def get_teacher_classes():
         'description': cls.description,
         'teacher_id': str(cls.teacher_id)
     } for cls in classes]
+    return jsonify(classes_list), 200
+
+@bp.route('/show-teachers',methods=['GET'])
+@auth_required()
+def list_all_teachers():
+    if g.current_user.role != 'admin':
+        return jsonify({'message': 'Unauthorized'}), 401
+    result = []
+
+    teachers = db.session.query(Teacher).all()
+
+    for teacher in teachers:
+        class_ids = [cls.id for cls in teacher.classes]
+
+        if class_ids:
+            stmt = (
+                select(func.count(func.distinct(student_class_association.c.student_id)))
+                .where(student_class_association.c.class_id.in_(class_ids))
+            )
+            student_count = db.session.scalar(stmt)
+        else:
+            student_count = 0
+
+        result.append({
+            "teacher_id": str(teacher.id),
+            "full_name": f"{teacher.first_name} {teacher.last_name}",
+            "number_of_classes": len(class_ids),
+            "number_of_students": student_count
+        })
+
+    return jsonify(result)
+
+@bp.route('/list-all/<teacher_id>', methods=["GET"])
+@auth_required
+def get_classes_by_teacher(teacher_id):
+    if g.current_user.role != "admin":
+        return jsonify({"error": "Unauthorized access"}), 403
+    classes = Classroom.query.filter_by(teacher_id=teacher_id).all()
+    classes_list = [{
+        'id': str(cls.id),
+        'name': cls.name,
+        'image': url_for('static', filename=f'uploads/{cls.image}', _external=True),
+        'description': cls.description,
+        'teacher_id': str(cls.teacher_id)
+    } for cls in classes]
+
     return jsonify(classes_list), 200

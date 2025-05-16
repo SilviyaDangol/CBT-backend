@@ -1,5 +1,5 @@
 import os
-from flask import Blueprint, request, jsonify, url_for
+from flask import Blueprint, request, jsonify, url_for , g
 from sqlalchemy import func
 import traceback
 import uuid
@@ -9,7 +9,7 @@ import cv2
 from ...config import Config
 from ...db import db
 from ...db.models import Session, Behaviour, Classroom
-from ...auth import teacher_required
+from ...auth import teacher_required , auth_required
 from ...models.predict import detect_behavior, draw_detections
 import time
 import logging
@@ -72,8 +72,10 @@ def create_or_check_session(uuid_value):
         db.session.rollback()  # Rollback on error
         return jsonify({'error': f"{str(e)}"}), 500
 @bp.route('/stats/session/<string:session_id>', methods=['GET'])
-@teacher_required
+@auth_required()
 def get_session_stats(session_id):
+    if g.current_user.role != "teacher" and g.current_user.role != "admin":
+        return jsonify({'message': 'Unauthorized'}), 401
     """Get behavior statistics for a specific session"""
     try:
         # Get basic session info
@@ -105,7 +107,7 @@ def get_session_stats(session_id):
 
 
 @bp.route('/stats/classroom/<string:class_id>/sessions', methods=['GET'])
-@teacher_required
+@auth_required()
 def get_classroom_sessions_stats(class_id):
     try:
         classroom = db.session.query(Classroom).filter(Classroom.id == class_id).first()

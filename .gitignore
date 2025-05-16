@@ -9,3 +9,4 @@ venv/
 .env
 src/models/best.pt
 src/models/best.pt
+.venv

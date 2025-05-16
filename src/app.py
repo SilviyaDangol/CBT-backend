@@ -7,7 +7,6 @@ from .blueprints.student.routes import bp as bp_student
 from .blueprints.teacher.routes import bp as bp_teacher
 from .blueprints.dashboard.routes import bp as bp_dashboard
 from .models.predict import initialize_model
-from .blueprints.admin.routes import bp as bp_admin
 
 def create_app(config: Config=Config):
     app = Flask(__name__)
@@ -20,7 +19,6 @@ def create_app(config: Config=Config):
     app.register_blueprint(bp_student)
     app.register_blueprint(bp_teacher)
     app.register_blueprint(bp_dashboard)
-    app.register_blueprint(bp_admin)
     db.init_app(app)
     with app.app_context():
         db.create_all()
