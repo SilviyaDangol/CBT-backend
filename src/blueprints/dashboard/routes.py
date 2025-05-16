@@ -9,10 +9,6 @@ from src.db.models import Classroom, Student, Session, Behaviour
 
 bp = Blueprint('dashboard', __name__, url_prefix='/dashboard')
 
-from flask import jsonify, g
-from datetime import datetime, timedelta
-from app.models import Classroom, Session, Behaviour  # Adjust import paths as needed
-
 @bp.route('/pages/stats', methods=['GET'])
 @auth_required()
 def teacher_stats_by_admin():
@@ -181,7 +177,7 @@ def top_classes():
 
 
 @bp.route('/page/stats', methods=['GET'])
-@teacher_required()
+@teacher_required
 def teacher_stats():
     teacher_id = g.current_user.id
     BEHAVIOR_TYPES = ['hand-raising', 'reading', 'writing']  # Only these 3 behaviors
